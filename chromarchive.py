@@ -4,20 +4,40 @@ from optparse import OptionParser
 import re
 import os
 
-def exploreCamerasPath(cameras_path):
+def exploreCamerasPath(cameras_path,cameras_pattern):
 	#Check if the cameras path we guessed exists
+	cameras_id = []
 	if os.path.isdir(cameras_path):
-		print os.listdir(cameras_path)
+		
+		for dir in os.listdir(cameras_path):
+			id = extractNumber(cameras_pattern,dir)
+			if id != []:
+				cameras_id.append(id)
 
-	return cameras_path
+		if len(cameras_id) > 0:
+			print str(len(os.listdir(cameras_path))) + " cameras detected : "
+			print cameras_id
+		else : 
+			print "Unable to match cameras folders witch pattern: " + cameras_pattern	
 
+# Assumes that an image file is ALWAYS ended by a file format (.png, .jpg ...)
 def getImageFormat(image_path):
 	return  "."+image_path.split('.')[-1]
 
-def getFrameNumber(image_path):
-	print re.findall(r'(\d+)'+getImageFormat(image_path),image_path)
-	return re.findall(r'(\d+)'+getImageFormat(image_path),image_path)[0]
-
+def extractNumber(pattern,image_path):
+	search_pattern = pattern.replace("#","")
+	number_lenght = pattern.count("#")
+	regex = r'\d{'+str(number_lenght)+'}'
+	number =  re.findall(regex,image_path)
+	if len(number) != 1 :
+		print "No match found in " + image_path + " ,incorrect pattern : " + pattern
+	else: 
+		if (image_path == (search_pattern+number[0])):
+			number = int(number[0])
+		else:
+			print "No match found, incorrect pattern : " + pattern
+	return number
+	
 def getFirstLastFrame(images_path):
 	firstFrame = 0
 	lastFrame = 0
@@ -56,6 +76,9 @@ if __name__ == '__main__':
 	image_path = options.image_path
 
 	run_mode = RunMode()
+
+	camera_dir_name = ""
+	image_name = ""
 	# Search for frame number pattern
 	path_analysis = re.findall('([\w]*)([#]+)',image_path)
 	print path_analysis
@@ -65,21 +88,28 @@ if __name__ == '__main__':
 		print "Single Frame mode"
 
 	elif len(path_analysis) == 1:
-		if image_path.find(path_analysis[0]+getImageFormat(image_path)) != -1:
+		if image_path.find(path_analysis[0][0]+path_analysis[0][1]+getImageFormat(image_path)) != -1:
 			run_mode.multiple_frames = True
 			run_mode.multiple_cameras = False
+			image_name = path_analysis[0][0]+path_analysis[0][1]
+
 			print "Multiple Frame Mode"
 		else:
 			run_mode.multiple_frames = False
 			run_mode.multiple_cameras = True
+			camera_dir_name = path_analysis[0][0]+path_analysis[0][1]
 			print "Multiple Camera Mode"
 	elif len(path_analysis) == 2:
 		run_mode.multiple_frames = True
 		run_mode.multiple_cameras = True
+		image_name = path_analysis[1][0]+path_analysis[1][1]
+		camera_dir_name = path_analysis[0][0]+path_analysis[0][1]
 		print "Multiple Cameras & Frames mode"
 
-		print exploreCamerasPath(image_path.split(path_analysis[0])[0])
+	print camera_dir_name
+	print image_name
 
+	exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name)
 	# sample_image_name = ''.join((['#']*frame_id_size)) + getImageFormat(options.image_path)
 	# print getImageFormat(options.image_path)
 
