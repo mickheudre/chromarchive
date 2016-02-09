@@ -4,10 +4,18 @@ from optparse import OptionParser
 import re
 import os
 
+def exploreCamerasPath(cameras_path):
+	#Check if the cameras path we guessed exists
+	if os.path.isdir(cameras_path):
+		print os.listdir(cameras_path)
+
+	return cameras_path
+
 def getImageFormat(image_path):
 	return  "."+image_path.split('.')[-1]
 
 def getFrameNumber(image_path):
+	print re.findall(r'(\d+)'+getImageFormat(image_path),image_path)
 	return re.findall(r'(\d+)'+getImageFormat(image_path),image_path)[0]
 
 def getFirstLastFrame(images_path):
@@ -33,6 +41,11 @@ def silhouetteMask(img,silhouette,dilate=2):
 		silhouette = cv2.erode(silhouette,kernel,iterations = 1)
 	return cv2.bitwise_and(img,	silhouette)
 
+class RunMode:
+	def __init__(self):
+		self.multiple_frames = False
+		self.multiple_cameras = False
+
 if __name__ == '__main__':
 	parser = OptionParser()
 	parser.add_option("-i","--image",dest="image_path",help="Input Image Path")
@@ -40,16 +53,39 @@ if __name__ == '__main__':
 	parser.add_option("-o","--output_directory",dest="output",help="Output Directory")
 	
 	(options,args) = parser.parse_args()
+	image_path = options.image_path
 
-	single_frame_mode = True
-
+	run_mode = RunMode()
 	# Search for frame number pattern
-	frame_id_size = options.image_path.count('#')
+	path_analysis = re.findall('([\w]*)([#]+)',image_path)
+	print path_analysis
+	if len(path_analysis) == 0:
+		run_mode.multiple_frames = False
+		run_mode.multiple_cameras = False
+		print "Single Frame mode"
 
-	sample_image_name = ''.join((['#']*frame_id_size)) + getImageFormat(options.image_path)
-	print getImageFormat(options.image_path)
-	print getFrameNumber(options.image_path)
-	print getImageDirectory(options.image_path)
+	elif len(path_analysis) == 1:
+		if image_path.find(path_analysis[0]+getImageFormat(image_path)) != -1:
+			run_mode.multiple_frames = True
+			run_mode.multiple_cameras = False
+			print "Multiple Frame Mode"
+		else:
+			run_mode.multiple_frames = False
+			run_mode.multiple_cameras = True
+			print "Multiple Camera Mode"
+	elif len(path_analysis) == 2:
+		run_mode.multiple_frames = True
+		run_mode.multiple_cameras = True
+		print "Multiple Cameras & Frames mode"
+
+		print exploreCamerasPath(image_path.split(path_analysis[0])[0])
+
+	# sample_image_name = ''.join((['#']*frame_id_size)) + getImageFormat(options.image_path)
+	# print getImageFormat(options.image_path)
+
+	
+	# print getFrameNumber(options.image_path)
+	# print getImageDirectory(options.image_path)
 
 
 	# img = cv2.imread(options.image_path,1)
