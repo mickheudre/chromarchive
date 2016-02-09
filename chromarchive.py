@@ -4,6 +4,8 @@ from optparse import OptionParser
 import re
 import os
 
+
+#TODO : Check if the filenames found during exploration match a real file
 def exploreCamerasPath(cameras_path,cameras_pattern):
 	#Check if the cameras path we guessed exists
 	cameras_id = []
@@ -15,16 +17,28 @@ def exploreCamerasPath(cameras_path,cameras_pattern):
 				cameras_id.append(id)
 
 		if len(cameras_id) > 0:
-			print str(len(os.listdir(cameras_path))) + " cameras detected : "
-			print cameras_id
+			print str(len(os.listdir(cameras_path))) + " cameras detected : " + str(getMinMax(cameras_id))
+			return os.listdir(cameras_path)
 		else : 
 			print "Unable to match cameras folders witch pattern: " + cameras_pattern	
+
+def exploreImagesPath(images_path,images_pattern,image_format):
+	images_id = []
+	if os.path.isdir(images_path):
+		
+		for image in os.listdir(images_path): 
+			id =  extractNumber(images_pattern,image,image_format)
+			if id != []:
+				images_id.append(id)
+		if len(images_id) > 0:
+			print str(len(images_id)) + " images detected : " + str(getMinMax(images_id))
+			return os.listdir(images_path)
 
 # Assumes that an image file is ALWAYS ended by a file format (.png, .jpg ...)
 def getImageFormat(image_path):
 	return  "."+image_path.split('.')[-1]
 
-def extractNumber(pattern,image_path):
+def extractNumber(pattern,image_path,file_format=""):
 	search_pattern = pattern.replace("#","")
 	number_lenght = pattern.count("#")
 	regex = r'\d{'+str(number_lenght)+'}'
@@ -32,26 +46,15 @@ def extractNumber(pattern,image_path):
 	if len(number) != 1 :
 		print "No match found in " + image_path + " ,incorrect pattern : " + pattern
 	else: 
-		if (image_path == (search_pattern+number[0])):
+		if (image_path == (search_pattern+number[0]+file_format)):
 			number = int(number[0])
 		else:
 			print "No match found, incorrect pattern : " + pattern
 	return number
-	
-def getFirstLastFrame(images_path):
-	firstFrame = 0
-	lastFrame = 0
 
-	if os.path.isdir(images_path):
-		dlist = os.listdir(images_path)
-		print dlist
-	# 	idir = seqroot+"/Images/"+dlist[0]
-	# 	if os.path.isdir(idir):
-	# 		ilist = os.listdir(idir)
-	# 		intlist = map(getFrameNumber,ilist)
-	# 		firstFrame = min(intlist)
-	# 		lastFrame = max(intlist)	
-	# return (firstFrame,lastFrame)
+def getMinMax(id_list):
+	return (min(id_list),max(id_list))
+
 def getImageDirectory(image_path):
 	return options.image_path.split(getFrameNumber(image_path)+getImageFormat(image_path))[0]
 
@@ -109,7 +112,10 @@ if __name__ == '__main__':
 	print camera_dir_name
 	print image_name
 
-	exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name)
+	# exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name)
+	if run_mode.multiple_frames and run_mode.multiple_cameras:
+		for cam in exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name):
+			exploreImagesPath(image_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(image_path))
 	# sample_image_name = ''.join((['#']*frame_id_size)) + getImageFormat(options.image_path)
 	# print getImageFormat(options.image_path)
 
