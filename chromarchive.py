@@ -9,18 +9,21 @@ from collections import OrderedDict
 def exploreCamerasPath(cameras_path,cameras_pattern):
 	#Check if the cameras path we guessed exists
 	cameras_id = []
+	cameras_to_explore = OrderedDict()
 	if os.path.isdir(cameras_path):
-		
 		for dir in os.listdir(cameras_path):
 			id = extractNumber(cameras_pattern,dir)
 			if id != []:
 				cameras_id.append(id)
 
 		if len(cameras_id) > 0:
+			cameras_id.sort()
 			print str(len(os.listdir(cameras_path))) + " cameras detected : " + str(getMinMax(cameras_id))
-			return os.listdir(cameras_path)
+			for cam in cameras_id:
+				cameras_to_explore[re.sub(r'(#)+',cam,cameras_pattern)] = int(cam)
 		else : 
 			print "Unable to match cameras folders witch pattern: " + cameras_pattern	
+	return cameras_to_explore
 
 def exploreImagesPath(images_path,images_pattern,image_format):
 	images_id = []
