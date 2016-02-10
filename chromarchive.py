@@ -24,15 +24,45 @@ def exploreCamerasPath(cameras_path,cameras_pattern):
 
 def exploreImagesPath(images_path,images_pattern,image_format):
 	images_id = []
+
 	if os.path.isdir(images_path):
-		
-		for image in os.listdir(images_path): 
-			id =  extractNumber(images_pattern,image,image_format)
-			if id != []:
-				images_id.append(id)
+		file_list = os.listdir(images_path)
+		files_to_analyse = []
+
+		for file in file_list:
+			if file.find(image_format) != -1:
+				files_to_analyse.append(file.split(image_format)[0])
+		files_to_analyse.sort()
+
+		for image in files_to_analyse: 
+				id =  extractNumber(images_pattern,image)
+				if id != []:
+					images_id.append(id)
+
 		if len(images_id) > 0:
 			print str(len(images_id)) + " images detected : " + str(getMinMax(images_id))
-			return os.listdir(images_path)
+			return [images_path +"/"+ images_pattern.replace("#","")+ id + image_format for id in images_id]
+
+def exploreSilhouettesPath(silhouettes_path,silhouettes_pattern,silhouettes_format):
+	images_id = []
+
+	if os.path.isdir(silhouettes_path):
+		file_list = os.listdir(silhouettes_path)
+		files_to_analyse = []
+
+		for file in file_list:
+			if file.find(silhouettes_format) != -1:
+				files_to_analyse.append(file.split(silhouettes_format)[0])
+		files_to_analyse.sort()
+
+		for image in files_to_analyse: 
+				id =  extractNumber(silhouettes_pattern,image)
+				if id != []:
+					images_id.append(id)
+
+		if len(images_id) > 0:
+			print str(len(images_id)) + " silhouettes detected : " + str(getMinMax(images_id))
+			return [ silhouettes_path +"/"+ silhouettes_pattern.replace("#","")+ id + silhouettes_format for id in images_id]
 
 # Assumes that an image file is ALWAYS ended by a file format (.png, .jpg ...)
 def getImageFormat(image_path):
@@ -43,14 +73,15 @@ def extractNumber(pattern,image_path,file_format=""):
 	number_lenght = pattern.count("#")
 	regex = r'\d{'+str(number_lenght)+'}'
 	number =  re.findall(regex,image_path)
+	
 	if len(number) != 1 :
 		print "No match found in " + image_path + " ,incorrect pattern : " + pattern
 	else: 
 		if (image_path == (search_pattern+number[0]+file_format)):
-			number = int(number[0])
+			return number[0]
 		else:
 			print "No match found, incorrect pattern : " + pattern
-	return number
+	
 
 def getMinMax(id_list):
 	return (min(id_list),max(id_list))
@@ -77,6 +108,7 @@ if __name__ == '__main__':
 	
 	(options,args) = parser.parse_args()
 	image_path = options.image_path
+	silhouettes_path = options.silhouette_path
 
 	run_mode = RunMode()
 
@@ -84,7 +116,6 @@ if __name__ == '__main__':
 	image_name = ""
 	# Search for frame number pattern
 	path_analysis = re.findall('([\w]*)([#]+)',image_path)
-	print path_analysis
 	if len(path_analysis) == 0:
 		run_mode.multiple_frames = False
 		run_mode.multiple_cameras = False
@@ -109,13 +140,27 @@ if __name__ == '__main__':
 		camera_dir_name = path_analysis[0][0]+path_analysis[0][1]
 		print "Multiple Cameras & Frames mode"
 
-	print camera_dir_name
-	print image_name
-
 	# exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name)
 	if run_mode.multiple_frames and run_mode.multiple_cameras:
 		for cam in exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name):
-			exploreImagesPath(image_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(image_path))
+			print "Processing camera " + cam + " :" 
+			images_to_load = exploreImagesPath(image_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(image_path))
+			silhouettes_to_load = exploreSilhouettesPath(silhouettes_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(silhouettes_path))
+
+			if len(images_to_load) == len(silhouettes_to_load):
+				for files in zip(images_to_load, silhouettes_to_load):
+					#Check if the frame number is the same
+					im_id = extractNumber(image_name,files[0].split("/")[-1],getImageFormat(files[0]))
+					sil_id = extractNumber(image_name,files[1].split("/")[-1],getImageFormat(files[1]))
+					if im_id == sil_id:
+						im = cv2.imread(files[0])
+						silh = cv2.imread(files[1])
+					else:
+						"Image file doesn't match silhouette file"
+					
+			# print silhouettes_to_load
+	# print images_to_load
+	# print silhouettes_to_load
 	# sample_image_name = ''.join((['#']*frame_id_size)) + getImageFormat(options.image_path)
 	# print getImageFormat(options.image_path)
 
