@@ -3,7 +3,7 @@ import numpy as np
 from optparse import OptionParser
 import re
 import os
-
+from collections import OrderedDict
 
 #TODO : Check if the filenames found during exploration match a real file
 def exploreCamerasPath(cameras_path,cameras_pattern):
@@ -24,6 +24,7 @@ def exploreCamerasPath(cameras_path,cameras_pattern):
 
 def exploreImagesPath(images_path,images_pattern,image_format):
 	images_id = []
+	images_to_load = OrderedDict()
 
 	if os.path.isdir(images_path):
 		file_list = os.listdir(images_path)
@@ -41,11 +42,13 @@ def exploreImagesPath(images_path,images_pattern,image_format):
 
 		if len(images_id) > 0:
 			print str(len(images_id)) + " images detected : " + str(getMinMax(images_id))
-			return [images_path +"/"+ images_pattern.replace("#","")+ id + image_format for id in images_id]
+			for id in images_id:
+				images_to_load[images_path +"/"+ images_pattern.replace("#","")+ id + image_format] = int(id)
+	return images_to_load
 
 def exploreSilhouettesPath(silhouettes_path,silhouettes_pattern,silhouettes_format):
 	images_id = []
-
+	silhouettes_to_load = OrderedDict()
 	if os.path.isdir(silhouettes_path):
 		file_list = os.listdir(silhouettes_path)
 		files_to_analyse = []
@@ -62,7 +65,9 @@ def exploreSilhouettesPath(silhouettes_path,silhouettes_pattern,silhouettes_form
 
 		if len(images_id) > 0:
 			print str(len(images_id)) + " silhouettes detected : " + str(getMinMax(images_id))
-			return [ silhouettes_path +"/"+ silhouettes_pattern.replace("#","")+ id + silhouettes_format for id in images_id]
+			for id in images_id:
+				silhouettes_to_load[silhouettes_path +"/"+ silhouettes_pattern.replace("#","")+ id + silhouettes_format] = int(id)
+	return silhouettes_to_load
 
 # Assumes that an image file is ALWAYS ended by a file format (.png, .jpg ...)
 def getImageFormat(image_path):
@@ -153,17 +158,17 @@ if __name__ == '__main__':
 			images_to_load = exploreImagesPath(image_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(image_path))
 			silhouettes_to_load = exploreSilhouettesPath(silhouettes_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(silhouettes_path))
 
-	if len(images_to_load) == len(silhouettes_to_load):
-		for files in zip(images_to_load, silhouettes_to_load):
-					#Check if the frame number is the same
-			im_id = extractNumber(image_name,files[0].split("/")[-1],getImageFormat(files[0]))
-			sil_id = extractNumber(image_name,files[1].split("/")[-1],getImageFormat(files[1]))
-			if im_id == sil_id:
-				im = cv2.imread(files[0])
-				silh = cv2.imread(files[1])
+	# if len(images_to_load) == len(silhouettes_to_load):
+	# 	for files in zip(images_to_load, silhouettes_to_load):
+	# 				#Check if the frame number is the same
+	# 		im_id = extractNumber(image_name,files[0].split("/")[-1],getImageFormat(files[0]))
+	# 		sil_id = extractNumber(image_name,files[1].split("/")[-1],getImageFormat(files[1]))
+	# 		if im_id == sil_id:
+	# 			im = cv2.imread(files[0])
+	# 			silh = cv2.imread(files[1])
 
-			else:
-				print "Image file doesn't match silhouette file"
+	# 		else:
+	# 			print "Image file doesn't match silhouette file"
 					
 			# print silhouettes_to_load
 	# print images_to_load
