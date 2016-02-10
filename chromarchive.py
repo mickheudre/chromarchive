@@ -46,7 +46,7 @@ def exploreImagesPath(images_path,images_pattern,image_format):
 		if len(images_id) > 0:
 			print str(len(images_id)) + " images detected : " + str(getMinMax(images_id))
 			for id in images_id:
-				images_to_load[images_path +"/"+ images_pattern.replace("#","")+ id + image_format] = int(id)
+				images_to_load[images_path +"/"+ images_pattern.replace("#","")+ id + image_format] = (id)
 	return images_to_load
 
 def exploreSilhouettesPath(silhouettes_path,silhouettes_pattern,silhouettes_format):
@@ -69,7 +69,7 @@ def exploreSilhouettesPath(silhouettes_path,silhouettes_pattern,silhouettes_form
 		if len(images_id) > 0:
 			print str(len(images_id)) + " silhouettes detected : " + str(getMinMax(images_id))
 			for id in images_id:
-				silhouettes_to_load[silhouettes_path +"/"+ silhouettes_pattern.replace("#","")+ id + silhouettes_format] = int(id)
+				silhouettes_to_load[silhouettes_path +"/"+ silhouettes_pattern.replace("#","")+ id + silhouettes_format] = (id)
 	return silhouettes_to_load
 
 # Assumes that an image file is ALWAYS ended by a file format (.png, .jpg ...)
@@ -161,17 +161,20 @@ if __name__ == '__main__':
 			images_to_load = exploreImagesPath(image_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(image_path))
 			silhouettes_to_load = exploreSilhouettesPath(silhouettes_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(silhouettes_path))
 
-	# if len(images_to_load) == len(silhouettes_to_load):
-	# 	for files in zip(images_to_load, silhouettes_to_load):
-	# 				#Check if the frame number is the same
-	# 		im_id = extractNumber(image_name,files[0].split("/")[-1],getImageFormat(files[0]))
-	# 		sil_id = extractNumber(image_name,files[1].split("/")[-1],getImageFormat(files[1]))
-	# 		if im_id == sil_id:
-	# 			im = cv2.imread(files[0])
-	# 			silh = cv2.imread(files[1])
+			if len(images_to_load) == len(silhouettes_to_load):
 
-	# 		else:
-	# 			print "Image file doesn't match silhouette file"
+				for files in zip(images_to_load.keys(), silhouettes_to_load.keys()):
+				# 			#Check if the frame number is the same
+					im_id = images_to_load[files[0]]
+					sil_id = silhouettes_to_load[files[1]]
+					if im_id == sil_id:
+						im = cv2.imread(files[0])
+						sil = cv2.imread(files[1])
+						res = silhouetteMask(im,sil)
+						print output_path+"/"+cam+"/"+re.sub(r'(#)+',im_id,image_name)+getImageFormat(image_path)
+						cv2.imwrite(output_path+"/"+cam+"/"+re.sub(r'(#)+',im_id,image_name)+getImageFormat(image_path),res)
+					else:
+						print "Image file doesn't match silhouette file"
 					
 			# print silhouettes_to_load
 	# print images_to_load
