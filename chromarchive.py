@@ -109,6 +109,10 @@ if __name__ == '__main__':
 	(options,args) = parser.parse_args()
 	image_path = options.image_path
 	silhouettes_path = options.silhouette_path
+	output_path = options.output
+
+	if not(os.path.isdir(output_path)):
+		os.mkdir(output_path)
 
 	run_mode = RunMode()
 
@@ -144,19 +148,22 @@ if __name__ == '__main__':
 	if run_mode.multiple_frames and run_mode.multiple_cameras:
 		for cam in exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name):
 			print "Processing camera " + cam + " :" 
+			if not(os.path.isdir(output_path+"/"+cam)):
+				os.mkdir(output_path+"/"+cam)
 			images_to_load = exploreImagesPath(image_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(image_path))
 			silhouettes_to_load = exploreSilhouettesPath(silhouettes_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(silhouettes_path))
 
-			if len(images_to_load) == len(silhouettes_to_load):
-				for files in zip(images_to_load, silhouettes_to_load):
+	if len(images_to_load) == len(silhouettes_to_load):
+		for files in zip(images_to_load, silhouettes_to_load):
 					#Check if the frame number is the same
-					im_id = extractNumber(image_name,files[0].split("/")[-1],getImageFormat(files[0]))
-					sil_id = extractNumber(image_name,files[1].split("/")[-1],getImageFormat(files[1]))
-					if im_id == sil_id:
-						im = cv2.imread(files[0])
-						silh = cv2.imread(files[1])
-					else:
-						"Image file doesn't match silhouette file"
+			im_id = extractNumber(image_name,files[0].split("/")[-1],getImageFormat(files[0]))
+			sil_id = extractNumber(image_name,files[1].split("/")[-1],getImageFormat(files[1]))
+			if im_id == sil_id:
+				im = cv2.imread(files[0])
+				silh = cv2.imread(files[1])
+
+			else:
+				print "Image file doesn't match silhouette file"
 					
 			# print silhouettes_to_load
 	# print images_to_load
