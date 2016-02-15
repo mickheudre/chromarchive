@@ -35,7 +35,7 @@ def exploreImagesPath(images_path,images_pattern,image_format):
 		files_to_analyse = []
 
 		for file in file_list:
-			if file.find(image_format) != -1:
+			if file.endswith(image_format):
 				files_to_analyse.append(file.split(image_format)[0])
 		files_to_analyse.sort()
 
@@ -58,7 +58,7 @@ def exploreSilhouettesPath(silhouettes_path,silhouettes_pattern,silhouettes_form
 		files_to_analyse = []
 
 		for file in file_list:
-			if file.find(silhouettes_format) != -1:
+			if file.endswith(silhouettes_format):
 				files_to_analyse.append(file.split(silhouettes_format)[0])
 		files_to_analyse.sort()
 
@@ -75,18 +75,18 @@ def exploreSilhouettesPath(silhouettes_path,silhouettes_pattern,silhouettes_form
 
 # Assumes that an image file is ALWAYS ended by a file format (.png, .jpg ...)
 def getImageFormat(image_path):
-	return  "."+image_path.split('.')[-1]
+	return  os.path.splitext(image_path)[1]
 
-def extractNumber(pattern,image_path,file_format=""):
+def extractNumber(pattern,path,file_format=""):
 	search_pattern = pattern.replace("#","")
 	number_lenght = pattern.count("#")
 	regex = r'\d{'+str(number_lenght)+'}'
-	number =  re.findall(regex,image_path)
+	number =  re.findall(regex,path)
 	
 	if len(number) != 1 :
-		print "No match found in " + image_path + " ,incorrect pattern : " + pattern
+		print "No match found in " + path + " ,incorrect pattern : " + pattern
 	else: 
-		if (image_path == (search_pattern+number[0]+file_format)):
+		if (path == (search_pattern+number[0]+file_format)):
 			return number[0]
 		else:
 			print "No match found, incorrect pattern : " + pattern
@@ -95,8 +95,8 @@ def extractNumber(pattern,image_path,file_format=""):
 def getMinMax(id_list):
 	return (min(id_list),max(id_list))
 
-def getImageDirectory(image_path):
-	return options.image_path.split(getFrameNumber(image_path)+getImageFormat(image_path))[0]
+# def getImageDirectory(image_path):
+# 	return options.image_path.split(getFrameNumber(image_path)+getImageFormat(image_path))[0]
 
 def silhouetteMask(img,silhouette,dilate=2):
 	if dilate > 0:
@@ -122,7 +122,9 @@ if __name__ == '__main__':
 	parser.add_option("-o","--output_directory",dest="output",help="Output Directory")
 	
 	(options,args) = parser.parse_args()
-	image_path = options.image_path
+	print options.image_path
+	if (options.image_path == None) or (options.silhouette_path == None) or (options.output == None):
+		raise IOError("Invalid input arguments")
 	silhouettes_path = options.silhouette_path
 	output_path = options.output
 
