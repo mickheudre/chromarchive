@@ -1,4 +1,5 @@
 **Copyright 2016 INRIA**
+
 *Author : Mickaël Heudre mickael.heudre@inria.fr/mickheudre@gmail.com*
 
 ***
@@ -31,3 +32,4 @@ To load frame00001.png, frame00002.png, ..., frame00015.png, simply type frame##
 ```
 	python chromarchive.py -i cam_##/frame####.png -s cam_##/silhouette####.png - output_dir/
 ```
+Note that the camera name has to be set before image name.

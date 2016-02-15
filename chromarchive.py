@@ -103,17 +103,38 @@ def silhouetteMask(img,silhouette,dilate=2):
 		kernel = np.ones((dilate,dilate),np.uint8)
 	return cv2.bitwise_and(img,	cv2.dilate(silhouette,kernel,iterations = 1))
 
-def processFrame(input_paths):
-	# print input_paths
-	#im = cv2.imread(input_paths[0])
-	# sil = cv2.imread(input_paths[1])
-	cv2.imwrite(input_paths[2],silhouetteMask( cv2.imread(input_paths[0]),cv2.imread(input_paths[1])))
+def processFrame(paths):
+	"""
+		Multiply the input image and the input silhouette and save the result
+		:param paths : a list containing the input image, the input silhouette and the output path 
+	"""
+	cv2.imwrite(paths[2],silhouetteMask( cv2.imread(paths[0]),cv2.imread(paths[1])))
 
 
-class RunMode:
+class ChromArchive:
 	def __init__(self):
 		self.multiple_frames = False
 		self.multiple_cameras = False
+		self.image_path = ""
+		self.silhouette_path = ""
+		self.output_path = ""
+		self.image_pattern = ""
+		self.image_format = ""
+		self.silhouette_patter = ""
+
+	def parseInputArguments(self,options):
+		if options.image_path == None:
+			raise IOError("Input image path is not set.")
+		if options.silhouette_path == None:
+			raise IOError("Input image path is not set.")
+		if options.output == None:
+			raise IOError("Output directory is not set.")
+		self.image_path = options.image_path
+		self.silhouette_path = options.silhouette_path
+		self.output_path = options.output
+	def analysePaths(self):
+		if self.image_path != "" and self.silhouette_path != "" and self.output_path != "":
+			print "al"
 
 if __name__ == '__main__':
 	parser = OptionParser()
@@ -125,13 +146,14 @@ if __name__ == '__main__':
 	print options.image_path
 	if (options.image_path == None) or (options.silhouette_path == None) or (options.output == None):
 		raise IOError("Invalid input arguments")
+	image_path = options.image_path
 	silhouettes_path = options.silhouette_path
 	output_path = options.output
 
 	if not(os.path.isdir(output_path)):
 		os.mkdir(output_path)
 
-	run_mode = RunMode()
+	run_mode = ChromArchive()
 
 	camera_dir_name = ""
 	image_name = ""
