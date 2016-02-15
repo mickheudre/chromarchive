@@ -121,6 +121,7 @@ class ChromArchive:
 		self.image_pattern = ""
 		self.image_format = ""
 		self.silhouette_patter = ""
+		self.camera_pattern = ""
 
 	def parseInputArguments(self,options):
 		if options.image_path == None:
@@ -132,10 +133,58 @@ class ChromArchive:
 		self.image_path = options.image_path
 		self.silhouette_path = options.silhouette_path
 		self.output_path = options.output
+
 	def analysePaths(self):
 		if self.image_path != "" and self.silhouette_path != "" and self.output_path != "":
-			print "al"
+			self.image_format = getImageFormat(self.image_path)
+			#Analyse the image path to find patterns defined with #
+			path_analysis = re.findall('([\w]*)([#]+)',self.image_path)
+			#case 1 : no pattern found, a single frame will be processed
+			if len(path_analysis) == 0:
+				self.multiple_frames = False
+				self.multiple_cameras = False
+				print "[Single frame mode]"
+			#case 2 : one pattern is found, we need to figure out if it is a camera or an image pattern
+			if len(path_analysis) == 1:
+				#The patter is associated to the file format, it is an image.
+				if (image_path.find(path_analysis[0][0]+path_analysis[0][1]+self.image_format)) != -1:
+					self.multiple_frames = True
+					self.multiple_cameras = False
+					self.image_pattern = path_analysis[0][0] + path_analysis[0][1]
+					print "[Multiple frames mode]"
+				#We assume that the other possibility is a camera pattern
+				else:
+					self.multiple_cameras = True
+					self.multiple_frames = False
+					self.camera_pattern = path_analysis[0][0] + path_analysis[0][1]
+					print "[Multiple cameras mode]"
+			#case 3 : 
+			if len(path_analysis) == 2:
+				self.multiple_cameras = True
+				self.multiple_frames = True
+				if (image_path.find(path_analysis[1][0]+path_analysis[1][1]+self.image_format)) != -1:
+					self.image_pattern = path_analysis[1][0]+path_analysis[1][1]
+					self.camera_pattern = path_analysis[0][0]+path_analysis[0][1]
+				else:
+					self.image_pattern = path_analysis[0][0]+path_analysis[0][1]
+					self.camera_pattern = path_analysis[1][0]+path_analysis[1][1]
+				print "[Multiple frames & cameras mode]"
+				print "Image pattern : " + self.image_pattern
+				print "Cameras pattern : " + self.camera_pattern
+				self.cameras_directory = self.image_path.split(self.camera_pattern)[0]
+				
+	def archiveSingleFrame(self):
+		"""
+			Archive a single frame
+		"""
 
+	def archiveMultipleFrames(self):
+		"""
+			Archive multiple frames
+		"""
+
+
+	
 if __name__ == '__main__':
 	parser = OptionParser()
 	parser.add_option("-i","--image",dest="image_path",help="Input Image Path")
@@ -143,7 +192,7 @@ if __name__ == '__main__':
 	parser.add_option("-o","--output_directory",dest="output",help="Output Directory")
 	
 	(options,args) = parser.parse_args()
-	print options.image_path
+
 	if (options.image_path == None) or (options.silhouette_path == None) or (options.output == None):
 		raise IOError("Invalid input arguments")
 	image_path = options.image_path
@@ -154,11 +203,14 @@ if __name__ == '__main__':
 		os.mkdir(output_path)
 
 	run_mode = ChromArchive()
+	run_mode.parseInputArguments(options)
+	run_mode.analysePaths()
 
 	camera_dir_name = ""
 	image_name = ""
 	# Search for frame number pattern
 	path_analysis = re.findall('([\w]*)([#]+)',image_path)
+
 	if len(path_analysis) == 0:
 		run_mode.multiple_frames = False
 		run_mode.multiple_cameras = False
@@ -208,33 +260,9 @@ if __name__ == '__main__':
 			if len(images_to_load) == len(silhouettes_to_load):
 
 				process_queue = process_queue + zip(images_to_load.keys(), silhouettes_to_load.keys(),output_paths)
-					
-				# for files in zip(images_to_load.keys(), silhouettes_to_load.keys()):
-				# # 			#Check if the frame number is the same
-				# 	im_id = images_to_load[files[0]]
-				# 	sil_id = silhouettes_to_load[files[1]]
-				# 	if im_id == sil_id:
-				# 		im = cv2.imread(files[0])
-				# 		sil = cv2.imread(files[1])
-				# 		res = silhouetteMask(im,sil)
-				# 		print output_path+"/"+cam+"/"+re.sub(r'(#)+',im_id,image_name)+getImageFormat(image_path)
-				# 		cv2.imwrite(output_path+"/"+cam+"/"+re.sub(r'(#)+',im_id,image_name)+getImageFormat(image_path),res)
-				# 	else:
-				# 		print "Image file doesn't match silhouette file"
+				
 
 
 		pool = mp.Pool()
 		pool.map(processFrame,process_queue)
-			# print silhouettes_to_load
-	# print images_to_load
-	# print silhouettes_to_load
-	# sample_image_name = ''.join((['#']*frame_id_size)) + getImageFormat(options.image_path)
-	# print getImageFormat(options.image_path)
-
 	
-	# print getFrameNumber(options.image_path)
-	# print getImageDirectory(options.image_path)
-
-
-	# img = cv2.imread(options.image_path,1)
-	# silhouette = cv2.imread(options.silhouette_path,0)
