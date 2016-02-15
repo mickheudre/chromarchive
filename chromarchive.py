@@ -4,6 +4,7 @@ from optparse import OptionParser
 import re
 import os
 from collections import OrderedDict
+import multiprocessing as mp
 
 #TODO : Check if the filenames found during exploration match a real file
 def exploreCamerasPath(cameras_path,cameras_pattern):
@@ -100,8 +101,14 @@ def getImageDirectory(image_path):
 def silhouetteMask(img,silhouette,dilate=2):
 	if dilate > 0:
 		kernel = np.ones((dilate,dilate),np.uint8)
-		silhouette = cv2.erode(silhouette,kernel,iterations = 1)
-	return cv2.bitwise_and(img,	silhouette)
+	return cv2.bitwise_and(img,	cv2.dilate(silhouette,kernel,iterations = 1))
+
+def processFrame(input_paths):
+	# print input_paths
+	#im = cv2.imread(input_paths[0])
+	# sil = cv2.imread(input_paths[1])
+	cv2.imwrite(input_paths[2],silhouetteMask( cv2.imread(input_paths[0]),cv2.imread(input_paths[1])))
+
 
 class RunMode:
 	def __init__(self):
@@ -154,6 +161,7 @@ if __name__ == '__main__':
 
 	# exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name)
 	if run_mode.multiple_frames and run_mode.multiple_cameras:
+		process_queue = []
 		for cam in exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name):
 			print "Processing camera " + cam + " :" 
 			if not(os.path.isdir(output_path+"/"+cam)):
@@ -161,21 +169,38 @@ if __name__ == '__main__':
 			images_to_load = exploreImagesPath(image_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(image_path))
 			silhouettes_to_load = exploreSilhouettesPath(silhouettes_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(silhouettes_path))
 
+			output_paths = []
+			
+			for files in zip(images_to_load.keys(), silhouettes_to_load.keys()):
+				#Check if the frame number is the same
+				im_id = images_to_load[files[0]]
+				sil_id = silhouettes_to_load[files[1]]
+
+				if im_id == sil_id:
+					output_paths.append(output_path+"/"+cam+"/"+re.sub(r'(#)+',im_id,image_name)+getImageFormat(image_path))
+				else:
+					images_to_load.pop(files[0])
+					silhouettes_to_load.pop(files[1])
 			if len(images_to_load) == len(silhouettes_to_load):
 
-				for files in zip(images_to_load.keys(), silhouettes_to_load.keys()):
-				# 			#Check if the frame number is the same
-					im_id = images_to_load[files[0]]
-					sil_id = silhouettes_to_load[files[1]]
-					if im_id == sil_id:
-						im = cv2.imread(files[0])
-						sil = cv2.imread(files[1])
-						res = silhouetteMask(im,sil)
-						print output_path+"/"+cam+"/"+re.sub(r'(#)+',im_id,image_name)+getImageFormat(image_path)
-						cv2.imwrite(output_path+"/"+cam+"/"+re.sub(r'(#)+',im_id,image_name)+getImageFormat(image_path),res)
-					else:
-						print "Image file doesn't match silhouette file"
+				process_queue = process_queue + zip(images_to_load.keys(), silhouettes_to_load.keys(),output_paths)
 					
+				# for files in zip(images_to_load.keys(), silhouettes_to_load.keys()):
+				# # 			#Check if the frame number is the same
+				# 	im_id = images_to_load[files[0]]
+				# 	sil_id = silhouettes_to_load[files[1]]
+				# 	if im_id == sil_id:
+				# 		im = cv2.imread(files[0])
+				# 		sil = cv2.imread(files[1])
+				# 		res = silhouetteMask(im,sil)
+				# 		print output_path+"/"+cam+"/"+re.sub(r'(#)+',im_id,image_name)+getImageFormat(image_path)
+				# 		cv2.imwrite(output_path+"/"+cam+"/"+re.sub(r'(#)+',im_id,image_name)+getImageFormat(image_path),res)
+				# 	else:
+				# 		print "Image file doesn't match silhouette file"
+
+
+		pool = mp.Pool()
+		pool.map(processFrame,process_queue)
 			# print silhouettes_to_load
 	# print images_to_load
 	# print silhouettes_to_load
