@@ -30,6 +30,12 @@ def exploreImagesPath(images_path,images_pattern,image_format):
 	images_id = []
 	images_to_load = OrderedDict()
 
+	if (images_pattern == ""):
+
+		if os.path.isfile(images_path):
+			images_to_load[os.path.normpath(images_path)] = "1"
+			print images_to_load
+			return images_to_load
 	if os.path.isdir(images_path):
 		file_list = os.listdir(images_path)
 		files_to_analyse = []
@@ -47,12 +53,16 @@ def exploreImagesPath(images_path,images_pattern,image_format):
 		if len(images_id) > 0:
 			print str(len(images_id)) + " images detected : " + str(getMinMax(images_id))
 			for id in images_id:
-				images_to_load[images_path +"/"+ images_pattern.replace("#","")+ id + image_format] = (id)
+				images_to_load[os.path.normpath(images_path +"/"+ images_pattern.replace("#","")+ id + image_format)] = (id)
 	return images_to_load
 
 def exploreSilhouettesPath(silhouettes_path,silhouettes_pattern,silhouettes_format):
 	images_id = []
 	silhouettes_to_load = OrderedDict()
+	if silhouettes_pattern == "":
+		if os.path.isfile(silhouettes_path):
+			silhouettes_to_load[silhouettes_path] = "1"
+			return silhouettes_to_load
 	if os.path.isdir(silhouettes_path):
 		file_list = os.listdir(silhouettes_path)
 		files_to_analyse = []
@@ -172,7 +182,7 @@ class ChromArchive:
 				print "Image pattern : " + self.image_pattern
 				print "Cameras pattern : " + self.camera_pattern
 				self.cameras_directory = self.image_path.split(self.camera_pattern)[0]
-				
+
 	def archiveSingleFrame(self):
 		"""
 			Archive a single frame
