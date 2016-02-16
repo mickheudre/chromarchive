@@ -118,6 +118,7 @@ def processFrame(paths):
 		Multiply the input image and the input silhouette and save the result
 		:param paths : a list containing the input image, the input silhouette and the output path 
 	"""
+	print "Processing " + paths[0]
 	cv2.imwrite(paths[2],silhouetteMask( cv2.imread(paths[0]),cv2.imread(paths[1])))
 
 
@@ -183,15 +184,38 @@ class ChromArchive:
 				print "Cameras pattern : " + self.camera_pattern
 				self.cameras_directory = self.image_path.split(self.camera_pattern)[0]
 
-	def archiveSingleFrame(self):
+	def archive(self):
 		"""
-			Archive a single frame
+			Archive the frames found during the analyse step
 		"""
+		process_queue = []
 
-	def archiveMultipleFrames(self):
-		"""
-			Archive multiple frames
-		"""
+
+		if self.multiple_cameras:
+			for cam in exploreCamerasPath(self.image_path.split(self.camera_pattern)[0],self.camera_pattern):
+				print "Processing camera " + cam + " :" 
+				if not(os.path.isdir(output_path+"/"+cam)):
+					os.mkdir(output_path+"/"+cam)
+				if self.multiple_frames:
+					images_to_load = exploreImagesPath(self.image_path.split(self.camera_pattern)[0]+cam,self.image_pattern,self.image_format)
+					silhouettes_to_load = exploreSilhouettesPath(self.silhouette_path.split(self.camera_pattern)[0]+cam,self.image_pattern,self.image_format)
+
+					output_paths = []
+			
+					for files in zip(images_to_load.keys(), silhouettes_to_load.keys()):
+				#	Check if the frame number is the same
+						if images_to_load[files[0]] == silhouettes_to_load[files[1]]:
+							output_paths.append(self.output_path+"/"+cam+"/"+re.sub(r'(#)+',images_to_load[files[0]],self.image_pattern)+self.image_format)
+						else:
+							images_to_load.pop(files[0])
+							silhouettes_to_load.pop(files[1])
+					if len(images_to_load) == len(silhouettes_to_load):
+						process_queue = process_queue + zip(images_to_load.keys(), silhouettes_to_load.keys(),output_paths)
+
+		pool = mp.Pool()
+		pool.map(processFrame,process_queue)
+
+
 
 
 	
@@ -215,64 +239,64 @@ if __name__ == '__main__':
 	run_mode = ChromArchive()
 	run_mode.parseInputArguments(options)
 	run_mode.analysePaths()
+	run_mode.archive()
+	# camera_dir_name = ""
+	# image_name = ""
+	# # Search for frame number pattern
+	# path_analysis = re.findall('([\w]*)([#]+)',image_path)
 
-	camera_dir_name = ""
-	image_name = ""
-	# Search for frame number pattern
-	path_analysis = re.findall('([\w]*)([#]+)',image_path)
+	# if len(path_analysis) == 0:
+	# 	run_mode.multiple_frames = False
+	# 	run_mode.multiple_cameras = False
+	# 	print "Single Frame mode"
 
-	if len(path_analysis) == 0:
-		run_mode.multiple_frames = False
-		run_mode.multiple_cameras = False
-		print "Single Frame mode"
+	# elif len(path_analysis) == 1:
+	# 	if image_path.find(path_analysis[0][0]+path_analysis[0][1]+getImageFormat(image_path)) != -1:
+	# 		run_mode.multiple_frames = True
+	# 		run_mode.multiple_cameras = False
+	# 		image_name = path_analysis[0][0]+path_analysis[0][1]
 
-	elif len(path_analysis) == 1:
-		if image_path.find(path_analysis[0][0]+path_analysis[0][1]+getImageFormat(image_path)) != -1:
-			run_mode.multiple_frames = True
-			run_mode.multiple_cameras = False
-			image_name = path_analysis[0][0]+path_analysis[0][1]
+	# 		print "Multiple Frame Mode"
+	# 	else:
+	# 		run_mode.multiple_frames = False
+	# 		run_mode.multiple_cameras = True
+	# 		camera_dir_name = path_analysis[0][0]+path_analysis[0][1]
+	# 		print "Multiple Camera Mode"
+	# elif len(path_analysis) == 2:
+	# 	run_mode.multiple_frames = True
+	# 	run_mode.multiple_cameras = True
+	# 	image_name = path_analysis[1][0]+path_analysis[1][1]
+	# 	camera_dir_name = path_analysis[0][0]+path_analysis[0][1]
+	# 	print "Multiple Cameras & Frames mode"
 
-			print "Multiple Frame Mode"
-		else:
-			run_mode.multiple_frames = False
-			run_mode.multiple_cameras = True
-			camera_dir_name = path_analysis[0][0]+path_analysis[0][1]
-			print "Multiple Camera Mode"
-	elif len(path_analysis) == 2:
-		run_mode.multiple_frames = True
-		run_mode.multiple_cameras = True
-		image_name = path_analysis[1][0]+path_analysis[1][1]
-		camera_dir_name = path_analysis[0][0]+path_analysis[0][1]
-		print "Multiple Cameras & Frames mode"
+	# # exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name)
+	# if run_mode.multiple_frames and run_mode.multiple_cameras:
+	# 	process_queue = []
+	# 	for cam in exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name):
+	# 		print "Processing camera " + cam + " :" 
+	# 		if not(os.path.isdir(output_path+"/"+cam)):
+	# 			os.mkdir(output_path+"/"+cam)
+	# 		images_to_load = exploreImagesPath(image_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(image_path))
+	# 		silhouettes_to_load = exploreSilhouettesPath(silhouettes_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(silhouettes_path))
 
-	# exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name)
-	if run_mode.multiple_frames and run_mode.multiple_cameras:
-		process_queue = []
-		for cam in exploreCamerasPath(image_path.split(camera_dir_name)[0],camera_dir_name):
-			print "Processing camera " + cam + " :" 
-			if not(os.path.isdir(output_path+"/"+cam)):
-				os.mkdir(output_path+"/"+cam)
-			images_to_load = exploreImagesPath(image_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(image_path))
-			silhouettes_to_load = exploreSilhouettesPath(silhouettes_path.split(camera_dir_name)[0]+cam,image_name,getImageFormat(silhouettes_path))
-
-			output_paths = []
+	# 		output_paths = []
 			
-			for files in zip(images_to_load.keys(), silhouettes_to_load.keys()):
-				#Check if the frame number is the same
-				im_id = images_to_load[files[0]]
-				sil_id = silhouettes_to_load[files[1]]
+	# 		for files in zip(images_to_load.keys(), silhouettes_to_load.keys()):
+	# 			#Check if the frame number is the same
+	# 			im_id = images_to_load[files[0]]
+	# 			sil_id = silhouettes_to_load[files[1]]
 
-				if im_id == sil_id:
-					output_paths.append(output_path+"/"+cam+"/"+re.sub(r'(#)+',im_id,image_name)+getImageFormat(image_path))
-				else:
-					images_to_load.pop(files[0])
-					silhouettes_to_load.pop(files[1])
-			if len(images_to_load) == len(silhouettes_to_load):
+	# 			if im_id == sil_id:
+	# 				output_paths.append(output_path+"/"+cam+"/"+re.sub(r'(#)+',im_id,image_name)+getImageFormat(image_path))
+	# 			else:
+	# 				images_to_load.pop(files[0])
+	# 				silhouettes_to_load.pop(files[1])
+	# 		if len(images_to_load) == len(silhouettes_to_load):
 
-				process_queue = process_queue + zip(images_to_load.keys(), silhouettes_to_load.keys(),output_paths)
+	# 			process_queue = process_queue + zip(images_to_load.keys(), silhouettes_to_load.keys(),output_paths)
 				
 
 
-		pool = mp.Pool()
-		pool.map(processFrame,process_queue)
+	# 	pool = mp.Pool()
+	# 	pool.map(processFrame,process_queue)
 	
